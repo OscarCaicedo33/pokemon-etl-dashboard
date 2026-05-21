@@ -1,0 +1,44 @@
+# Entornos virtuales
+venv/
+.venv/
+env/
+superset/venv/
+superset/superset_home/
+
+# Variables de entorno (NUNCA en git)
+.env
+
+# Datos crudos (66 MB — demasiado para GitHub)
+data/raw/
+
+# Archivos generados (se recrean con main.py)
+data/output/stats_report.png
+data/output/dashboard.html
+data/output/etl_flowchart.png
+
+# Logs
+logs/
+
+# Los siguientes SÍ van al repo (pequeños, necesarios para que la app funcione al clonar):
+# data/processed/pokemon_clean.csv  → 28K
+# data/output/pokemon.db            → 40K
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
