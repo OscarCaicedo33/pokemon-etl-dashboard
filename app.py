@@ -39,16 +39,16 @@ STAT_LABELS = {
 ARTWORK = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/{id}.png"
 
 NAV_PAGES = [
-    ("🏠", "Vista General"),
-    ("📊", "Estadísticas"),
-    ("🖼️", "Galería"),
-    ("🔍", "Explorador"),
-    ("⚙️", "Pipeline ETL"),
+    "Vista General",
+    "Estadísticas",
+    "Galería",
+    "Comparación",
+    "Resumen ETL",
 ]
 
 st.set_page_config(
     page_title="Pokemon ETL — Portfolio",
-    page_icon="⚡",
+    page_icon=None,
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -201,6 +201,9 @@ def inject_css() -> None:
     background: linear-gradient(to right, #FFFFFF 0%, #EEF2FF 100%) !important;
     border-right: 1px solid rgba(41,98,255,0.15);
 }}
+[data-testid="stSidebar"] > div:first-child {{
+    padding-top: 0.6rem !important;
+}}
 section[data-testid="stSidebar"] div[role="radiogroup"] {{
     display: flex;
     flex-direction: column;
@@ -255,6 +258,28 @@ section[data-testid="stSidebar"] div[role="radiogroup"] input[type="radio"] {{
     border-left: 3px solid {ACCENT}55;
     line-height: 1.6;
 }}
+
+.main div[data-testid="stSelectbox"] {{
+    background: {CARD_BG};
+    border: 1.5px solid {ACCENT}33;
+    border-radius: 16px;
+    padding: 0.3rem 0.75rem 0.2rem;
+    box-shadow: 0 2px 10px rgba(41,98,255,0.07);
+}}
+.main div[data-testid="stSelectbox"] label {{
+    font-size: 0.62rem !important;
+    font-weight: 600 !important;
+    color: {ACCENT} !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0 !important;
+}}
+.main div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {{
+    min-height: 32px !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    font-size: 0.82rem !important;
+}}
 </style>
 """
     st.markdown(css, unsafe_allow_html=True)
@@ -279,12 +304,12 @@ def load_data() -> pd.DataFrame:
     return df
 
 
-def sidebar_nav_and_filters(df: pd.DataFrame) -> tuple[str, int | None, pd.DataFrame]:
-    """Returns (current_page, selected_pokemon_id, filtered_df)."""
+def sidebar_nav_and_filters(df: pd.DataFrame) -> tuple[str, pd.DataFrame]:
+    """Returns (current_page, filtered_df)."""
 
     # ── Logo (pegado al tope) ─────────────────────────────────────────────────
     st.sidebar.markdown(
-        f"<div style='padding:0 0 0.6rem;text-align:center'>"
+        f"<div style='padding:0 0 1.6rem;text-align:center'>"
         f"<p class='pokemon-brand' style='color:{ACCENT};font-size:0.85rem;margin:0'>Pokémon ETL</p>"
         f"<p class='pokemon-brand' style='color:{TEXT_SUB};font-size:0.52rem;margin:0.6rem 0 0'>Portfolio · Generación I</p>"
         f"</div>",
@@ -297,31 +322,46 @@ def sidebar_nav_and_filters(df: pd.DataFrame) -> tuple[str, int | None, pd.DataF
         f"letter-spacing:0.05em;margin-bottom:0.5rem'>Navegación</p>",
         unsafe_allow_html=True,
     )
-    page_labels = [f"{icon}  {name}" for icon, name in NAV_PAGES]
-    page_names  = [name for _, name in NAV_PAGES]
-    selected_label = st.sidebar.radio("nav", options=page_labels, label_visibility="collapsed")
-    current_page = page_names[page_labels.index(selected_label)]
+    selected_label = st.sidebar.radio("nav", options=NAV_PAGES, label_visibility="collapsed")
+    current_page = selected_label
 
     st.sidebar.divider()
 
-    # ── Pokémon destacado (debajo del menú) ───────────────────────────────────
+    # ── Filtros globales ──────────────────────────────────────────────────────
     st.sidebar.markdown(
         f"<p class='pokemon-brand' style='font-size:0.52rem;color:{TEXT_SUB};"
-        f"letter-spacing:0.05em;margin:0.2rem 0 0.3rem'>Pokémon Destacado</p>",
+        f"letter-spacing:0.05em;margin:0.2rem 0 0.4rem'>Filtros</p>",
         unsafe_allow_html=True,
     )
-    _TODOS = "— Todos —"
-    poke_options = [_TODOS] + sorted(df["name"].tolist())
-    selected_name = st.sidebar.selectbox(
-        "pokemon_select",
-        options=poke_options,
-        index=0,
-        format_func=lambda n: "Todos los Pokémon" if n == _TODOS else n.capitalize(),
+    st.sidebar.markdown(
+        f"<p style='font-size:0.68rem;color:{TEXT_SUB};margin:0 0 0.15rem'>Tipo primario</p>",
+        unsafe_allow_html=True,
+    )
+    _ALL = "Todos"
+    type_options = [_ALL] + sorted(df["type_primary"].dropna().unique().tolist())
+    selected_type = st.sidebar.selectbox(
+        "Tipo primario", options=type_options,
+        format_func=lambda n: "Todos los tipos" if n == _ALL else n.capitalize(),
         label_visibility="collapsed",
     )
-    selected_id = None if selected_name == _TODOS else int(df[df["name"] == selected_name]["id"].iloc[0])
+    st.sidebar.markdown(
+        f"<p style='font-size:0.68rem;color:{TEXT_SUB};margin:0.5rem 0 0.15rem'>Tier de poder</p>",
+        unsafe_allow_html=True,
+    )
+    tier_options = [_ALL] + sorted(df["power_tier"].dropna().unique().tolist())
+    selected_tier = st.sidebar.selectbox(
+        "Tier de poder", options=tier_options,
+        format_func=lambda n: "Todos los tiers" if n == _ALL else n,
+        label_visibility="collapsed",
+    )
 
-    return current_page, selected_id, df.copy()
+    df_filtered = df.copy()
+    if selected_type != _ALL:
+        df_filtered = df_filtered[df_filtered["type_primary"] == selected_type]
+    if selected_tier != _ALL:
+        df_filtered = df_filtered[df_filtered["power_tier"] == selected_tier]
+
+    return current_page, df_filtered
 
 
 def hero_todos(df: pd.DataFrame) -> None:
@@ -370,7 +410,7 @@ def hero_todos(df: pd.DataFrame) -> None:
         f'<div style="background:linear-gradient(135deg,#EEF2FF 0%,#E8F4FD 100%);'
         f'border-radius:24px;padding:1rem 1.5rem 1rem;animation:slideIn 0.6s ease both">'
         f'<p style="font-size:0.78rem;font-weight:600;color:{TEXT_SUB};margin:0 0 0.6rem">'
-        f'⚡ Generación I · selecciona un Pokémon en el menú lateral para ver sus stats</p>'
+        f'Generación 1: Desliza para ver -></p>'
         f'<div style="overflow-x:auto;white-space:nowrap;padding-bottom:0.5rem">'
         f'<div style="display:inline-flex;gap:6px;align-items:flex-start">'
         f'{items_html}'
@@ -399,7 +439,7 @@ def hero_section(df_full: pd.DataFrame, selected_id: int) -> None:
         st.markdown(
             f'<div class="hero-container">'
             f'<div style="text-align:center">'
-            f'<span class="hero-badge">⚡ Pokémon Destacado</span><br>'
+            f'<span class="hero-badge">Pokémon Destacado</span><br>'
             f'<img src="{artwork_src}" width="200"'
             f' style="filter:drop-shadow(0 8px 24px rgba(0,0,0,0.15));animation:fadeUp 0.8s ease"/>'
             f'<p style="font-size:1.3rem;font-weight:700;color:{TEXT};'
@@ -469,18 +509,38 @@ def hero_section(df_full: pd.DataFrame, selected_id: int) -> None:
         )
 
 
-def page_header(icon: str, title: str, subtitle: str) -> None:
+def page_header(title: str, subtitle: str) -> None:
     st.markdown(
         f'<div class="page-header">'
-        f'<h2 class="pokemon-brand">{icon} {title}</h2>'
+        f'<h2 class="pokemon-brand">{title}</h2>'
         f'<p class="pokemon-brand">{subtitle}</p></div>',
         unsafe_allow_html=True,
     )
 
 
-def tab_overview(df: pd.DataFrame) -> None:
-    page_header("🏠", "Vista General",
+def tab_overview(df: pd.DataFrame, df_full: pd.DataFrame) -> None:
+    col_hero_sel, _ = st.columns([1, 2])
+    with col_hero_sel:
+        _TODOS = "— Todos —"
+        poke_all = [_TODOS] + sorted(df_full["name"].tolist())
+        sel_name = st.selectbox(
+            "Pokemon destacado",
+            options=poke_all,
+            index=0,
+            format_func=lambda n: "Todos los Pokémon" if n == _TODOS else n.capitalize(),
+            key="pokemon_destacado_sel",
+        )
+
+    page_header("Vista General",
                 "Análisis completo de los 151 Pokémon de la primera generación")
+
+    if sel_name == _TODOS:
+        hero_todos(df)
+    else:
+        sel_id = int(df_full[df_full["name"] == sel_name]["id"].iloc[0])
+        hero_section(df_full, sel_id)
+
+    st.markdown("<br>", unsafe_allow_html=True)
 
     col_left, col_right = st.columns(2)
 
@@ -506,7 +566,7 @@ def tab_overview(df: pd.DataFrame) -> None:
         n_types   = len(type_counts)
         rare_type = type_counts.iloc[-1]["type"].capitalize()
         st.markdown(
-            f'<p class="chart-conclusion">💡 <b>{top_type}</b> es el tipo primario más '
+            f'<p class="chart-conclusion"><b>{top_type}</b> es el tipo primario más '
             f'frecuente con <b>{top_count}</b> Pokémon. La Gen&nbsp;I cuenta con '
             f'<b>{n_types}</b> tipos distintos; <b>{rare_type}</b> es el menos '
             f'representado.</p>',
@@ -537,7 +597,7 @@ def tab_overview(df: pd.DataFrame) -> None:
         total_poke     = int(tier_counts["Cantidad"].sum())
         pct_tier       = round(top_tier_count / total_poke * 100)
         st.markdown(
-            f'<p class="chart-conclusion">💡 El tier <b>{top_tier}</b> agrupa la mayor '
+            f'<p class="chart-conclusion">El tier <b>{top_tier}</b> agrupa la mayor '
             f'cantidad de Pokémon (<b>{top_tier_count}</b> de {total_poke}, '
             f'{pct_tier}%). La distribución confirma que la mayoría de la Gen&nbsp;I '
             f'tiene un poder base intermedio.</p>',
@@ -591,7 +651,7 @@ def tab_overview(df: pd.DataFrame) -> None:
         avg_top15  = int(top["bst"].mean())
         avg_all    = int(df["bst"].mean())
         st.markdown(
-            f'<p class="chart-conclusion">💡 <b>{leader}</b> encabeza el ranking con '
+            f'<p class="chart-conclusion"><b>{leader}</b> encabeza el ranking con '
             f'<b>{leader_bst}</b> puntos de BST. El tipo <b>{dom_type}</b> es el más '
             f'representado en el top&nbsp;15. El BST promedio de este grupo '
             f'({avg_top15}&nbsp;pts) supera en <b>{avg_top15 - avg_all}&nbsp;pts</b> '
@@ -637,7 +697,7 @@ def tab_overview(df: pd.DataFrame) -> None:
         most_def = avg_by_type.assign(d=avg_by_type["defense"] - avg_by_type["attack"]).nlargest(1, "d")["type_primary"].iloc[0].capitalize()
         balanced = avg_by_type.assign(d=(avg_by_type["attack"] - avg_by_type["defense"]).abs()).nsmallest(1, "d")["type_primary"].iloc[0].capitalize()
         st.markdown(
-            f'<p class="chart-conclusion">💡 Los puntos sobre la diagonal punteada son más '
+            f'<p class="chart-conclusion">Los puntos sobre la diagonal punteada son más '
             f'defensivos que ofensivos. <b>{most_off}</b> es el tipo más ofensivo y '
             f'<b>{most_def}</b> el más defensivo. <b>{balanced}</b> muestra el mejor '
             f'equilibrio entre Ataque y Defensa.</p>',
@@ -646,7 +706,7 @@ def tab_overview(df: pd.DataFrame) -> None:
 
 
 def tab_stats(df: pd.DataFrame) -> None:
-    page_header("📊", "Estadísticas",
+    page_header("Estadísticas",
                 "Descubre patrones ocultos en las estadísticas base de cada Pokémon")
 
     # ── Selectores encima del scatter, alineados sobre col2 ──────────────────
@@ -683,7 +743,7 @@ def tab_stats(df: pd.DataFrame) -> None:
         max_r, max_a, max_b = max(corr_pairs, key=lambda x: x[0])
         min_r, min_a, min_b = min(corr_pairs, key=lambda x: x[0])
         st.markdown(
-            f'<p class="chart-conclusion">💡 <b>{STAT_LABELS[max_a]}</b> y '
+            f'<p class="chart-conclusion"><b>{STAT_LABELS[max_a]}</b> y '
             f'<b>{STAT_LABELS[max_b]}</b> tienen la mayor correlación (r&nbsp;=&nbsp;{max_r}): '
             f'los Pokémon fuertes en una tienden a serlo en la otra. '
             f'<b>{STAT_LABELS[min_a]}</b> y <b>{STAT_LABELS[min_b]}</b> son las stats '
@@ -718,7 +778,7 @@ def tab_stats(df: pd.DataFrame) -> None:
         top_x = df.nlargest(1, x_stat)[["name", x_stat]].iloc[0]
         top_y = df.nlargest(1, y_stat)[["name", y_stat]].iloc[0]
         st.markdown(
-            f'<p class="chart-conclusion">💡 Correlación <b>{direction} {strength}</b> '
+            f'<p class="chart-conclusion">Correlación <b>{direction} {strength}</b> '
             f'(r&nbsp;=&nbsp;{pearson_r}) entre {STAT_LABELS[x_stat]} y {STAT_LABELS[y_stat]}. '
             f'<b>{top_x["name"].capitalize()}</b> lidera en {STAT_LABELS[x_stat]} '
             f'({int(top_x[x_stat])}&nbsp;pts) y <b>{top_y["name"].capitalize()}</b> '
@@ -748,7 +808,7 @@ def tab_stats(df: pd.DataFrame) -> None:
     best_spd = avg_raw["speed"].idxmax().capitalize()
     weakest  = avg_raw.mean(axis=1).idxmin().capitalize()
     st.markdown(
-        f'<p class="chart-conclusion">💡 <b>{best_atk}</b> domina en Ataque promedio y '
+        f'<p class="chart-conclusion"><b>{best_atk}</b> domina en Ataque promedio y '
         f'<b>{best_def}</b> destaca en Defensa. <b>{best_spd}</b> es el tipo más veloz de '
         f'la primera generación. <b>{weakest}</b> presenta los valores globales más bajos '
         f'en todas las estadísticas.</p>',
@@ -757,7 +817,7 @@ def tab_stats(df: pd.DataFrame) -> None:
 
 
 def tab_gallery(df: pd.DataFrame) -> None:
-    page_header("🖼️", "Galería", "Arte oficial de los 151 Pokémon · Ordena, filtra y explora")
+    page_header("Galería", "Arte oficial de los 151 Pokémon · Ordena, filtra y explora")
 
     col_ord, col_cols, col_search = st.columns([2, 2, 3])
     with col_ord:
@@ -810,7 +870,7 @@ def tab_gallery(df: pd.DataFrame) -> None:
 
 
 def tab_explorer(df: pd.DataFrame) -> None:
-    page_header("🔍", "Explorador", "Cara a cara · Compara dos Pokémon stat por stat y descubre quién gana")
+    page_header("Comparación", "Cara a cara · Compara dos Pokémon stat por stat y descubre quién gana")
 
     poke_names = sorted(df["name"].tolist())
     default_a = poke_names.index("bulbasaur") if "bulbasaur" in poke_names else 0
@@ -835,7 +895,7 @@ def tab_explorer(df: pd.DataFrame) -> None:
         st.markdown(
             f'<div style="text-align:center;padding:2.5rem 1rem;background:#F8FAFF;'
             f'border-radius:20px;border:2px dashed {ACCENT}33;margin-top:1rem">'
-            f'<p class="pokemon-brand" style="color:{ACCENT};font-size:0.7rem;margin:0 0 0.6rem">!</p>'
+            f'<p class="pokemon-brand" style="color:{ACCENT};font-size:0.80rem;margin:0 0 0.6rem">!</p>'
             f'<p style="color:{TEXT_SUB};font-size:0.88rem;margin:0">'
             f'Selecciona dos Pokémon diferentes para ver la comparación.</p>'
             f'</div>',
@@ -918,6 +978,55 @@ def tab_explorer(df: pd.DataFrame) -> None:
 
     st.markdown("<div style='margin:1rem 0 0.2rem'></div>", unsafe_allow_html=True)
 
+    # ── Tarjetas de ganador por stat ──────────────────────────────────────────
+    st.markdown(
+        f'<p class="section-title" style="margin-top:0.4rem">Resultado por estadística</p>',
+        unsafe_allow_html=True,
+    )
+    stat_result_cols = st.columns(len(STAT_COLS))
+    for col, label, va, vb in zip(stat_result_cols, stat_labels_list, vals_a, vals_b):
+        if va > vb:
+            winner, w_val, badge_color = poke_a["name"].capitalize(), va, CMP_A
+        elif vb > va:
+            winner, w_val, badge_color = poke_b["name"].capitalize(), vb, CMP_B
+        else:
+            winner, w_val, badge_color = "Empate", va, "#90A4AE"
+        with col:
+            st.markdown(
+                f'<div class="kpi-card" style="border-left-color:{badge_color};text-align:center;'
+                f'padding:0.7rem 0.5rem">'
+                f'<p class="kpi-label">{label}</p>'
+                f'<p class="kpi-value" style="color:{badge_color};font-size:1.15rem">{w_val}</p>'
+                f'<p style="font-size:0.68rem;color:{TEXT_SUB};margin:0.25rem 0 0;'
+                f'text-transform:capitalize;font-weight:600">{winner}</p>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+    # ── Conclusión automática ──────────────────────────────────────────────────
+    wins_a = sum(1 for a, b in zip(vals_a, vals_b) if a > b)
+    wins_b = sum(1 for a, b in zip(vals_a, vals_b) if b > a)
+    ties   = sum(1 for a, b in zip(vals_a, vals_b) if a == b)
+    bst_a, bst_b = int(poke_a["bst"]), int(poke_b["bst"])
+    bst_winner = poke_a["name"].capitalize() if bst_a >= bst_b else poke_b["name"].capitalize()
+    bst_diff = abs(bst_a - bst_b)
+    best_a_idx = max(range(len(vals_a)), key=lambda i: vals_a[i] - vals_b[i])
+    best_b_idx = max(range(len(vals_b)), key=lambda i: vals_b[i] - vals_a[i])
+
+    tie_txt = f" ({ties} empate{'s' if ties > 1 else ''})" if ties else ""
+    conclusion = (
+        f'<b>{poke_a["name"].capitalize()}</b> supera en <b>{wins_a}</b> stats, '
+        f'<b>{poke_b["name"].capitalize()}</b> en <b>{wins_b}</b>{tie_txt}. '
+        f'El BST total favorece a <b>{bst_winner}</b> por <b>{bst_diff}&nbsp;pts</b>. '
+        f'<b>{poke_a["name"].capitalize()}</b> destaca en '
+        f'<b>{stat_labels_list[best_a_idx]}</b> '
+        f'({vals_a[best_a_idx]} vs {vals_b[best_a_idx]}), mientras que '
+        f'<b>{poke_b["name"].capitalize()}</b> sobresale en '
+        f'<b>{stat_labels_list[best_b_idx]}</b> '
+        f'({vals_b[best_b_idx]} vs {vals_a[best_b_idx]}).'
+    )
+    st.markdown(f'<p class="chart-conclusion">{conclusion}</p>', unsafe_allow_html=True)
+
     # ── Gráfico de barras agrupadas por stat ──────────────────────────────────
     fig_bar = go.Figure()
     fig_bar.add_trace(go.Bar(
@@ -946,58 +1055,9 @@ def tab_explorer(df: pd.DataFrame) -> None:
     st.plotly_chart(fig_bar, use_container_width=True,
                     config={"scrollZoom": False, "displayModeBar": False})
 
-    # ── Conclusión automática ──────────────────────────────────────────────────
-    wins_a = sum(1 for a, b in zip(vals_a, vals_b) if a > b)
-    wins_b = sum(1 for a, b in zip(vals_a, vals_b) if b > a)
-    ties   = sum(1 for a, b in zip(vals_a, vals_b) if a == b)
-    bst_a, bst_b = int(poke_a["bst"]), int(poke_b["bst"])
-    bst_winner = poke_a["name"].capitalize() if bst_a >= bst_b else poke_b["name"].capitalize()
-    bst_diff = abs(bst_a - bst_b)
-    best_a_idx = max(range(len(vals_a)), key=lambda i: vals_a[i] - vals_b[i])
-    best_b_idx = max(range(len(vals_b)), key=lambda i: vals_b[i] - vals_a[i])
 
-    tie_txt = f" ({ties} empate{'s' if ties > 1 else ''})" if ties else ""
-    conclusion = (
-        f'<b>{poke_a["name"].capitalize()}</b> supera en <b>{wins_a}</b> stats, '
-        f'<b>{poke_b["name"].capitalize()}</b> en <b>{wins_b}</b>{tie_txt}. '
-        f'El BST total favorece a <b>{bst_winner}</b> por <b>{bst_diff}&nbsp;pts</b>. '
-        f'<b>{poke_a["name"].capitalize()}</b> destaca en '
-        f'<b>{stat_labels_list[best_a_idx]}</b> '
-        f'({vals_a[best_a_idx]} vs {vals_b[best_a_idx]}), mientras que '
-        f'<b>{poke_b["name"].capitalize()}</b> sobresale en '
-        f'<b>{stat_labels_list[best_b_idx]}</b> '
-        f'({vals_b[best_b_idx]} vs {vals_a[best_b_idx]}).'
-    )
-    st.markdown(f'<p class="chart-conclusion">💡 {conclusion}</p>', unsafe_allow_html=True)
-
-    # ── Tarjetas de ganador por stat ──────────────────────────────────────────
-    st.markdown(
-        f'<p class="section-title" style="margin-top:1.2rem">Resultado por estadística</p>',
-        unsafe_allow_html=True,
-    )
-    stat_result_cols = st.columns(len(STAT_COLS))
-    for col, label, va, vb in zip(stat_result_cols, stat_labels_list, vals_a, vals_b):
-        if va > vb:
-            winner, w_val, badge_color = poke_a["name"].capitalize(), va, CMP_A
-        elif vb > va:
-            winner, w_val, badge_color = poke_b["name"].capitalize(), vb, CMP_B
-        else:
-            winner, w_val, badge_color = "Empate", va, "#90A4AE"
-        with col:
-            st.markdown(
-                f'<div class="kpi-card" style="border-left-color:{badge_color};text-align:center;'
-                f'padding:0.7rem 0.5rem">'
-                f'<p class="kpi-label">{label}</p>'
-                f'<p class="kpi-value" style="color:{badge_color};font-size:1.15rem">{w_val}</p>'
-                f'<p style="font-size:0.65rem;color:{TEXT_SUB};margin:0.25rem 0 0;'
-                f'text-transform:capitalize;font-weight:600">{winner}</p>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
-
-
-def tab_pipeline(df_full: pd.DataFrame) -> None:
-    page_header("⚙️", "Pipeline ETL",
+def tab_pipeline() -> None:
+    page_header("Resumen ETL",
                 "De PokéAPI a SQLite · Arquitectura técnica del proyecto paso a paso")
 
     phases = [
@@ -1033,46 +1093,70 @@ def tab_pipeline(df_full: pd.DataFrame) -> None:
         with col:
             st.markdown(
                 f'<div class="card" style="border-top:4px solid {color}">'
-                f'<p style="font-size:1rem;font-weight:700;color:{color};margin:0 0 0.8rem">'
+                f'<p style="font-size:1.05rem;font-weight:700;color:{color};margin:0 0 0.8rem">'
                 f'{phase}</p></div>',
                 unsafe_allow_html=True,
             )
             st.markdown(content)
 
-    st.divider()
-    col_a, col_b = st.columns(2)
-    with col_a:
-        st.markdown(
-            f'<p class="section-title">Resumen estadístico</p>',
-            unsafe_allow_html=True,
-        )
-        summary = df_full[STAT_COLS].describe().round(1)
-        summary.columns = list(STAT_LABELS.values())
-        st.dataframe(summary, use_container_width=True)
+    st.markdown("<div style='margin-top:1.8rem'></div>", unsafe_allow_html=True)
 
-    with col_b:
+    narrative = [
+        (
+            "¿Por qué?",
+            "#2962FF",
+            "",
+            "La mayoría de los datos en el mundo real no llegan limpios ni estructurados. "
+            "Este proyecto nació con el objetivo de demostrar un flujo de ingeniería de datos "
+            "completo y reproducible: desde una fuente pública hasta un dashboard interactivo, "
+            "pasando por todas las etapas de transformación. Se eligió PokéAPI porque ofrece "
+            "datos reales, anidados y con complejidad suficiente para justificar un pipeline "
+            "real, sin depender de datos ficticios ni datasets preconstruidos."
+        ),
+        (
+            "¿Qué?",
+            "#10B981",
+            "",
+            "Se extrajeron los 151 Pokémon de la Primera Generación desde la PokéAPI, "
+            "una API REST pública con más de 300 millones de llamadas mensuales. "
+            "El resultado es un dataset limpio de 22 columnas que incluye estadísticas base, "
+            "tipos, dimensiones físicas, clasificación de poder y URLs de sprites, "
+            "almacenado en SQLite y expuesto en este dashboard para análisis interactivo."
+        ),
+        (
+            "¿Cómo?",
+            "#F59E0B",
+            "",
+            "El pipeline se construyó en Python puro con tres capas bien separadas. "
+            "En la extracción, se utilizó <b>requests</b> con reintentos automáticos via "
+            "<b>tenacity</b> para respetar el rate limit de la API (100 req/min). "
+            "En la transformación, <b>pandas</b> desanidó arrays JSON, calculó el BST "
+            "(suma de 6 stats), derivó variables físicas y categorizó cada Pokémon en un "
+            "tier de poder. En la carga, <b>sqlite3</b> persiste el dataset para consultas "
+            "eficientes, mientras Streamlit y Plotly construyen todas las visualizaciones "
+            "en tiempo real sobre esa misma base de datos."
+        ),
+    ]
+
+    for title, color, icon, text in narrative:
         st.markdown(
-            f'<p class="section-title">Distribución por Tier de Poder</p>',
+            f'<div style="background:{CARD_BG};border-radius:16px;padding:1.4rem 1.6rem;'
+            f'box-shadow:0 2px 12px rgba(0,0,0,0.06);margin-bottom:1rem;'
+            f'border-left:4px solid {color}">'
+            f'<p style="font-size:0.90rem;font-weight:700;color:{color};margin:0 0 0.5rem">'
+            f'{(icon + " ") if icon else ""}{title}</p>'
+            f'<p style="font-size:0.88rem;color:{TEXT};line-height:1.75;margin:0">{text}</p>'
+            f'</div>',
             unsafe_allow_html=True,
         )
-        if "power_tier" in df_full.columns:
-            tier_counts = df_full["power_tier"].value_counts().reset_index()
-            tier_counts.columns = ["Tier", "Cantidad"]
-            fig = px.pie(
-                tier_counts, names="Tier", values="Cantidad",
-                color_discrete_sequence=[ACCENT, "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"],
-            )
-            fig.update_layout(height=320, margin=dict(t=20, b=10, l=10, r=10),
-                               paper_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": False, "displayModeBar": False})
 
 
 def main() -> None:
     inject_css()
     df_full = load_data()
-    current_page, selected_id, df = sidebar_nav_and_filters(df_full)
+    current_page, df = sidebar_nav_and_filters(df_full)
 
-    _logo_path = Path(__file__).parent / "src" / "Font-pokemon.png"
+    _logo_path = Path(__file__).parent / "assets" / "Font-pokemon.png"
     _logo_b64  = base64.b64encode(_logo_path.read_bytes()).decode()
     st.markdown(
         f'<div style="margin-bottom:1.2rem">'
@@ -1089,20 +1173,15 @@ def main() -> None:
         return
 
     if current_page == "Vista General":
-        if selected_id is None:
-            hero_todos(df_full)
-        else:
-            hero_section(df_full, selected_id)
-        st.markdown("<br>", unsafe_allow_html=True)
-        tab_overview(df)
+        tab_overview(df, df_full)
     elif current_page == "Estadísticas":
         tab_stats(df)
     elif current_page == "Galería":
         tab_gallery(df)
-    elif current_page == "Explorador":
+    elif current_page == "Comparación":
         tab_explorer(df)
-    elif current_page == "Pipeline ETL":
-        tab_pipeline(df_full)
+    elif current_page == "Resumen ETL":
+        tab_pipeline()
 
 
 if __name__ == "__main__":

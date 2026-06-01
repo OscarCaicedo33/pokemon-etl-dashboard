@@ -1,44 +1,53 @@
-# Entornos virtuales
+# ── Entornos virtuales ────────────────────────────────────────────────────────
 venv/
 .venv/
 env/
 superset/venv/
-superset/superset_home/
 
-# Variables de entorno (NUNCA en git)
+# ── Variables de entorno (NUNCA en git) ───────────────────────────────────────
 .env
 
-# Datos crudos (66 MB — demasiado para GitHub)
+# ── Datos crudos (66 MB — demasiado para GitHub) ─────────────────────────────
 data/raw/
 
-# Archivos generados (se recrean con main.py)
+# ── Archivos generados (se recrean con scripts/) ─────────────────────────────
 data/output/stats_report.png
 data/output/dashboard.html
 data/output/etl_flowchart.png
+README.pdf
 
-# Logs
+# ── Logs ──────────────────────────────────────────────────────────────────────
 logs/
+
+# ── Superset (estado interno, no es código) ───────────────────────────────────
+superset/superset_home/
 
 # Los siguientes SÍ van al repo (pequeños, necesarios para que la app funcione al clonar):
 # data/processed/pokemon_clean.csv  → 28K
 # data/output/pokemon.db            → 40K
+# assets/Font-pokemon.png           → logo del dashboard
 
-# Python cache
+# ── Python cache ──────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
 .Python
 
-# Jupyter checkpoints
+# ── Jupyter checkpoints ───────────────────────────────────────────────────────
 .ipynb_checkpoints/
 *.ipynb_checkpoints
 
-# IDE
+# ── IDE y herramientas de desarrollo ─────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
+.claude/
 
-# macOS
+# ── PDFs duplicados en raíz ───────────────────────────────────────────────────
+Manuales ETL pokemon.pdf
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
 .DS_Store
+**/.DS_Store

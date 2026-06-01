@@ -59,32 +59,51 @@ flowchart TD
 
 ```
 Proyecto 2 CV/
-├── app.py                      <- DASHBOARD  →  streamlit run app.py
-├── main.py                     <- PIPELINE   →  python main.py --limit 151
+├── app.py                          <- DASHBOARD   →  streamlit run app.py
+├── main.py                         <- PIPELINE    →  python main.py --limit 151
 │
-├── README.md / README.pdf      <- Documentación
-├── TASK.md                     <- Guía de ejecución detallada
-├── requirements.txt
-├── .env.example                <- Plantilla de variables de entorno
+├── README.md / README.pdf          <- Documentación del proyecto
+├── TASK.md                         <- Guía de ejecución (referencia rápida)
+├── requirements.txt                <- Dependencias Python
+├── .env.example                    <- Plantilla de variables de entorno
 │
-├── src/                        <- Código fuente del pipeline
-│   ├── config.py               <- Configuración centralizada
+├── assets/                         <- Recursos estáticos de la interfaz
+│   └── Font-pokemon.png            <- Logotipo usado en el dashboard
+│
+├── src/                            <- Código fuente del pipeline ETL
+│   ├── config.py                   <- Rutas, variables de entorno y constantes
 │   ├── extract/
-│   │   └── api_client.py       <- Cliente HTTP (PokéAPI + retry)
+│   │   └── api_client.py           <- Cliente HTTP (PokéAPI + retry tenacity)
 │   ├── transform/
-│   │   └── cleaner.py          <- Normalización y enriquecimiento
+│   │   └── cleaner.py              <- Normalización, BST, power_tier, IMC
 │   └── load/
-│       └── exporter.py         <- SQLite + Plotly + Matplotlib
+│       └── exporter.py             <- SQLite + Plotly HTML + Matplotlib PNG
 │
 ├── data/
-│   ├── raw/                    <- JSON crudo de la API
-│   ├── processed/              <- CSV limpio (151 × 21)
-│   └── output/                 <- SQLite, dashboard.html, reports
+│   ├── raw/                        <- JSON crudo descargado de la API  [gitignore]
+│   ├── processed/                  <- pokemon_clean.csv (151 × 21 columnas)
+│   └── output/                     <- pokemon.db, dashboard.html, reports
 │
-├── scripts/                    <- Utilidades (generar PNG, PDF)
-├── tests/                      <- Tests unitarios (pytest)
-├── notebooks/                  <- Análisis exploratorio (Jupyter)
-└── logs/                       <- Logs de cada ejecución
+├── notebooks/
+│   └── 01_eda_pokemon.ipynb        <- Análisis exploratorio (EDA) del dataset
+│
+├── tests/
+│   ├── conftest.py                 <- Fixtures compartidos para pytest
+│   ├── test_extract.py             <- Tests del cliente PokéAPI
+│   └── test_transform.py           <- Tests de limpieza y cálculo de campos
+│
+├── scripts/
+│   ├── generate_flowchart.py       <- Genera data/output/etl_flowchart.png
+│   └── generate_pdf.py             <- Convierte README.md → README.pdf
+│
+├── docs/                           <- Documentación técnica del proyecto
+│   ├── MANUAL_ETL.md               <- Manual conceptual del pipeline (ETL, conceptos, entrevista)
+│   └── MANUAL_VISUAL.md            <- Manual del dashboard (diseño, CSS, componentes)
+│
+├── superset/                       <- Exploración BI opcional con Apache Superset
+│   └── README.md                   <- Instrucciones de setup y conexión
+│
+└── logs/                           <- Logs de cada ejecución  [gitignore]
 ```
 
 ---
@@ -163,6 +182,15 @@ python main.py --phase extract
 python main.py --phase transform
 python main.py --phase load
 ```
+
+---
+
+## Documentación
+
+| Manual | Descripción |
+|--------|-------------|
+| [`docs/MANUAL_ETL.md`](docs/MANUAL_ETL.md) | Guía técnico-conceptual del pipeline: Extract, Transform, Load, testing, glosario y guía de entrevista |
+| [`docs/MANUAL_VISUAL.md`](docs/MANUAL_VISUAL.md) | Manual del dashboard: sistema de diseño, CSS en Streamlit, componentes, visualizaciones y navegación |
 
 ---
 
