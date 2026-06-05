@@ -13,7 +13,6 @@ data/raw/
 # ── Archivos generados (se recrean con scripts/) ─────────────────────────────
 data/output/stats_report.png
 data/output/dashboard.html
-data/output/etl_flowchart.png
 README.pdf
 
 # ── Logs ──────────────────────────────────────────────────────────────────────
