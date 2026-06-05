@@ -40,7 +40,15 @@ flowchart TD
     M --> N([FIN])
 ```
 
-> El diagrama también está disponible como imagen en [`data/output/etl_flowchart.png`](data/output/etl_flowchart.png) (generado con `python generate_flowchart.py`).
+> El diagrama también está disponible como imagen en [`data/output/etl_flowchart.png`](data/output/etl_flowchart.png) (generado con `python scripts/generate_flowchart.py`).
+
+---
+
+## Esquema de Datos
+
+![Esquema de datos Pokemon ETL](data/output/schema_diagram.png)
+
+> Modelo estrella: la tabla `pokemon` (SQLite · 151 filas × 21 columnas) al centro, alimentada por la PokéAPI y organizada en grupos de columnas por categoría. Generado con `python scripts/generate_schema.py`.
 
 ---
 
