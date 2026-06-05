@@ -40,8 +40,6 @@ flowchart TD
     M --> N([FIN])
 ```
 
-> El diagrama también está disponible como imagen en [`data/output/etl_flowchart.png`](data/output/etl_flowchart.png) (generado con `python scripts/generate_flowchart.py`).
-
 ---
 
 ## Esquema de Datos
