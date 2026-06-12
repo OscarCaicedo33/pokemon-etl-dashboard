@@ -71,6 +71,12 @@ def inject_css() -> None:
 
 * {{ font-family: 'Inter', sans-serif !important; }}
 
+/* Los íconos de Streamlit usan la fuente Material Symbols: si se les aplica
+   Inter, se ve el nombre del ícono como texto (keyboard_double_arrow_left) */
+span[data-testid="stIconMaterial"] {{
+    font-family: 'Material Symbols Rounded' !important;
+}}
+
 .pokemon-brand {{
     font-family: 'Press Start 2P', monospace !important;
     line-height: 1.7;
